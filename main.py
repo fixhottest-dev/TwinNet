@@ -29,7 +29,7 @@ def verify_token(credentials: HTTPAuthorizationCredentials = Depends(security)):
 
 @app.get("/")
 async def health_check():
-    return {"status": "TwinNet Backend is Live with NVIDIA AI!"}
+    return {"status": "TwinNet Backend is Live with NVIDIA Auto-Detect!"}
 
 @app.post("/v1/twin/interact")
 async def interact_with_twin(
@@ -40,11 +40,28 @@ async def interact_with_twin(
         raise HTTPException(status_code=500, detail="Render API Key Error: NVIDIA_API_KEY is missing.")
 
     try:
+        # 1. AUTO-DETECT: NVIDIA se active models ki list maangna
+        available_models = client.models.list()
+        target_model = None
+        
+        # Pehle kisi bhi active Llama model ko dhoondhne ki koshish
+        for m in available_models.data:
+            if "llama" in m.id.lower():
+                target_model = m.id
+                break
+        
+        # Agar Llama nahi mila, toh jo bhi pehla active model ho use utha lo
+        if not target_model and available_models.data:
+            target_model = available_models.data[0].id
+
+        if not target_model:
+            raise Exception("NVIDIA server par koi active model nahi mila.")
+
         prompt = f"Tu {user_id} ka ek highly intelligent 'Personal AI Twin' hai. User ne command diya hai: '{request.command}'. Smartly bata ki tu ye kaise execute karega."
         
-        # ✅ THE FIX: NVIDIA ka sabse latest aur active Llama 3.1 model
+        # 2. Jo active model mila hai, uske saath reply generate karna
         completion = client.chat.completions.create(
-            model="meta/llama-3.1-8b-instruct",
+            model=target_model,
             messages=[{"role": "user", "content": prompt}],
             temperature=0.7,
             max_tokens=500
@@ -55,7 +72,7 @@ async def interact_with_twin(
         return {
             "status": "success",
             "timestamp": str(datetime.datetime.now()),
-            "ai_response": ai_reply
+            "ai_response": f"[{target_model}] {ai_reply}"
         }
     
     except Exception as e:
