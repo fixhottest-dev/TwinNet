@@ -42,9 +42,9 @@ async def interact_with_twin(
     try:
         prompt = f"Tu {user_id} ka ek highly intelligent 'Personal AI Twin' hai. User ne command diya hai: '{request.command}'. Smartly bata ki tu ye kaise execute karega."
         
-        # Real NVIDIA API Call (Llama-3-8B-Instruct model)
+        # ✅ THE FIX: NVIDIA ka sabse latest aur active Llama 3.1 model
         completion = client.chat.completions.create(
-            model="meta/llama3-8b-instruct",
+            model="meta/llama-3.1-8b-instruct",
             messages=[{"role": "user", "content": prompt}],
             temperature=0.7,
             max_tokens=500
