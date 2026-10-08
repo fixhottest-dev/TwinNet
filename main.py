@@ -8,13 +8,14 @@ import datetime
 app = FastAPI(title="TwinNet Core Gateway")
 security = HTTPBearer()
 
-# Render se API Key fetch karna
-GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
+# Render se API Key fetch karna aur extra spaces hatana
+raw_key = os.getenv("GEMINI_API_KEY", "")
+GEMINI_API_KEY = raw_key.strip()
 
 if GEMINI_API_KEY:
     genai.configure(api_key=GEMINI_API_KEY)
 else:
-    print("WARNING: GEMINI_API_KEY is not set!")
+    print("CRITICAL WARNING: GEMINI_API_KEY is missing in Render!")
 
 class TwinCommand(BaseModel):
     command: str
@@ -31,44 +32,23 @@ async def interact_with_twin(
     request: TwinCommand, 
     user_id: str = Depends(verify_token)
 ):
-    try:
-        # 1. AUTO-DETECT: Google se pucho ki is key ke liye kaunse models allowed hain
-        target_model_name = None
-        
-        # Pehle sabse fast 'flash' model dhoondhne ki koshish
-        for m in genai.list_models():
-            if 'generateContent' in m.supported_generation_methods:
-                if 'flash' in m.name:
-                    target_model_name = m.name
-                    break
-        
-        # Agar flash nahi mila, toh jo bhi pehla available model ho use utha lo
-        if not target_model_name:
-            for m in genai.list_models():
-                if 'generateContent' in m.supported_generation_methods:
-                    target_model_name = m.name
-                    break
-                    
-        if not target_model_name:
-            raise Exception("Is API key par koi bhi Text-Generation model available nahi hai.")
+    if not GEMINI_API_KEY:
+        raise HTTPException(status_code=500, detail="Render API Key Error: GEMINI_API_KEY is missing.")
 
-        # 'models/' prefix ko hata kar clean naam nikalna
-        clean_name = target_model_name.replace("models/", "")
-        
-        # 2. Jo model exactly available hai, usko initialize karna
-        model = genai.GenerativeModel(clean_name)
+    try:
+        # 🚀 THE FIX: Exact model version jo Google ne error mein manga hai
+        model = genai.GenerativeModel('gemini-3.8-flash')
         
         prompt = f"Tu {user_id} ka ek highly intelligent 'Personal AI Twin' hai. User ne command diya hai: '{request.command}'. Smartly bata ki tu ye kaise execute karega."
         
-        # 3. AI Reply Generate karna
+        # Real Gemini API Call
         response = model.generate_content(prompt)
         
         return {
             "status": "success",
             "timestamp": str(datetime.datetime.now()),
-            # UI par dikhane ke liye shuru mein model ka naam bhi bhej rahe hain
-            "ai_response": f"[{clean_name}] {response.text}"
+            "ai_response": response.text
         }
     
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Auto-Detect Error: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"AI Engine Error: {str(e)}")
