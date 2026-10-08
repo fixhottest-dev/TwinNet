@@ -16,8 +16,8 @@ if GEMINI_API_KEY:
 else:
     print("WARNING: GEMINI_API_KEY is not set in Environment Variables!")
 
-# ✅ ERROR FIX: Model ka naam 'gemini-1.5-flash-latest' kar diya gaya hai
-model = genai.GenerativeModel('gemini-1.5-flash-latest')
+# ✅ ERROR FIX: Model ka naam 'gemini-pro' kar diya gaya hai (Sabse stable)
+model = genai.GenerativeModel('gemini-pro')
 
 class TwinCommand(BaseModel):
     command: str
@@ -28,7 +28,7 @@ def verify_token(credentials: HTTPAuthorizationCredentials = Depends(security)):
         raise HTTPException(status_code=401, detail="Invalid token")
     return "user_999_verified"
 
-# ✅ NEW: Server check karne ke liye base route
+# Health Check Route
 @app.get("/")
 async def health_check():
     return {"status": "TwinNet Backend is Live and Ready!"}
