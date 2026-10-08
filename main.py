@@ -44,13 +44,14 @@ async def interact_with_twin(
         available_models = client.models.list()
         target_model = None
         
-        # Pehle kisi bhi active Llama model ko dhoondhne ki koshish
+        # 🚀 SMART SEARCH: Pehle 'glm' ya 'flash' model dhoondhna (jaise glm-5-3-flash)
         for m in available_models.data:
-            if "llama" in m.id.lower():
+            model_id = m.id.lower()
+            if "glm" in model_id or "flash" in model_id:
                 target_model = m.id
                 break
         
-        # Agar Llama nahi mila, toh jo bhi pehla active model ho use utha lo
+        # Agar glm/flash na mile, toh jo bhi pehla active model ho use utha lo
         if not target_model and available_models.data:
             target_model = available_models.data[0].id
 
